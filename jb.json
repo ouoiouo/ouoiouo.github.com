@@ -8,22 +8,22 @@
         {
             "name": "QQ",
             "url": "https://gitee.com/ikun0014/musicfree/raw/master/dist/qq/index.js",
-            "version": "0.0.1"
+            "version": "0.0.2"
         },
         {
             "name": "KG",
             "url": "https://gitee.com/ikun0014/musicfree/raw/master/dist/kg/index.js",
-            "version": "0.0.1"
+            "version": "0.0.2"
         },
         {
             "name": "KW",
             "url": "https://gitee.com/ikun0014/musicfree/raw/master/dist/kw/index.js",
-            "version": "0.0.1"
+            "version": "0.0.2"
         },
         {
             "name": "MG",
             "url": "https://gitee.com/ikun0014/musicfree/raw/master/dist/mg/index.js",
-            "version": "0.0.1"
+            "version": "0.0.2"
         }
     ]
 }
