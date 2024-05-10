@@ -1,9 +1,9 @@
 {
     "plugins": [
         {
-            "name": "歌词千寻",
+            "name": "网易云",
             "url": "https://gitee.com/ikun0014/musicfree/raw/master/dist/wy/index.js",
-            "version": "0.0.0"
+            "version": "0.0.1"
         }
     ]
 }
