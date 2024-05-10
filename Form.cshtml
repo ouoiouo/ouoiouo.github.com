@@ -1,0 +1,634 @@
+﻿@{
+    ViewBag.Title = "Form";
+    Layout = "~/Views/Shared/_LayoutIndex.cshtml";
+}
+<script type="text/javascript">
+    var KeyValue = GetQuery('KeyValue');//主键
+    var Data ;
+    var Statustap ;
+    var MaterialNo;
+    var Statusbtn;
+    $(function () {
+        //BindWaxName();
+        SetButtonAlwaysTop();
+        InitControl();
+        BindDropItem("#Line", "Line", "");
+
+
+
+        LoadData();
+        if(KeyValue!=""){
+            MaterialNo="";
+            Statustap='2';
+            BindCompany();
+        }
+
+        CreateOperations();
+        BindMaterialNo();
+
+        $(window).resize(function () {
+            $("#gridTable").setGridWidth($(window).width() - 27);
+            $("#gridTableMi").setGridWidth($(window).width() - 27);
+            SetFormHeight();
+            ResizeGrid("#gridOperationLog", $(window).width(), 124);
+        });
+
+
+    })
+
+
+
+    function BindMaterialNo() {
+        var $MaterialNo = $("#MaterialNo");
+        $MaterialNo.bind("change", function () {
+            $("#MaterialNo").val("");
+            $("#MaterialName").val("");
+            $("#Unit").val("");
+            $("#Spec").val("");
+            $("#ModelNo").val("");
+            $("#Brand").val("");
+        })
+        $MaterialNo.bind("keyup", function (e) {
+            if (e.which != 13 && e.which != 40 && e.which != 38 && e.which != 70) {
+                DataSource();
+            }
+        }).bind("focus", function () {
+            $(this).select();
+            DataSource();
+        });
+        //上，下键盘回调
+        autocompletekeydown("MaterialNo", function (data) {
+            $("#MaterialNo").val(data.MaterialNo);
+            $("#MaterialName").val(data.MaterialDesc);
+            $("#Unit").val(data.Unit);
+            $("#Spec").val(data.Spec);
+            $("#ModelNo").val(data.Model);
+            $("#Brand").val(data.Brand);
+        });
+        //获取数据源
+        function DataSource() {
+            AjaxJson("/CXModule/EPM_Base_MaterialBOM/GetMaterialNo", { MaterialNo: $("#MaterialNo").val() }, function (data) {
+                var html = "";
+                $.each(data, function (i) {
+                    html += '<tr style="width:100%;">';
+                    html += '<td id="Unit" style="display:none;">' + data[i].Unit + '</td>';
+                    html += '<td id="Spec" style="display:none;">' + data[i].Spec + '</td>';
+                    html += '<td id="Model" style="display:none;">' + data[i].Model + '</td>';
+                    html += '<td id="Brand" style="display:none;">' + data[i].Brand + '</td>';
+                    html += '<td id="SMaterialNo" style="width:50%;">' + data[i].MaterialNo + '</td>';
+                    html += '<td id="MaterialDesc" style="width:50%;">' + data[i].MaterialDesc + '</td>';
+                    html += "</tr>";
+                });
+                //点击事件回调
+                autocomplete("MaterialNo", "280px", "200px", html, function (data) {
+                    $("#MaterialNo").val(data.SMaterialNo);
+                    $("#MaterialName").val(data.MaterialDesc);
+                    $("#Unit").val(data.Unit);
+                    $("#Spec").val(data.Spec);
+                    $("#ModelNo").val(data.Model);
+                    $("#Brand").val(data.Brand);
+                    MaterialNo=data.SMaterialNo;
+                    Statustap="1";
+                    BindCompany();
+                });
+            });
+        }
+    }
+
+
+
+
+
+    function SetButtonAlwaysTop() {
+
+        //获取要定位元素距离浏览器顶部的距离
+        var navH = $("#divtopbutton").offset().top;
+        //滚动条事件
+        $(window).scroll(function () {
+            //获取滚动条的滑动距离
+            var scroH = $(this).scrollTop();
+            //滚动条的滑动距离大于等于定位元素距离浏览器顶部的距离，就固定，反之就不固定
+            if (scroH >= navH) {
+                $("#divtopbutton").css({ "position": "fixed", "top": 0, "right": 0, "z-index": 2000 });
+            } else if (scroH < navH) {
+                $("#divtopbutton").css({ "position": "static", "top": -1, "right": 0, "z-index": 2000 });
+            }
+        })
+    }
+
+
+    //重设区域高度
+    function SetFormHeight() {
+        var height = $(window).height();
+        if ($(".buttonArea").is(":visible")) {
+            height -= $(".buttonArea").height() + 30;
+        }
+        if ($(".logArea").is(":visible")) {
+            height -= $(".logArea").height() + 20;
+        }
+        $(".formContentArea").height(height);
+    }
+
+    function InitControl() {
+        GetGridLog();
+    }
+
+    //加载数据
+    function LoadData(){
+        if (!!KeyValue) {
+
+            InitControl();
+
+            AjaxJson("@Url.Action("FormAction")", {
+                OperationType: @Convert.ToInt32(Circle.Business.OperationType.Load),
+                KeyValue: KeyValue }, function (data) {
+                    SetWebControls(data);
+                    Data = data;
+                    $("#CreateUserName").text(data.CreateUserName);
+
+                    $("#CreateDate").text(data.CreateDate.substring(0, 10));
+
+                    if(data.Status=="0"){
+                        $("#Status").text("待生产");
+                    }else if(data.Status=="9"){
+                        $("#Status").text("终止");
+                    }else if(data.Status=="1"){
+                        $("#Status").text("生产完成");
+                    }
+
+                    $("#OrderNumber").text(data.OrderNumber);
+
+                });
+
+
+            LoadLogs();
+
+            $("#createinfo").show();
+            $("#statusinfo").show();
+
+
+            $("#Line").attr("disabled", true);
+
+            $("#Qty").attr("disabled", true);
+
+
+        }else{
+
+
+            $("#createinfo").hide();
+            $("#statusinfo").hide();
+
+            $("#Line").attr("disabled", false);
+
+            $("#Qty").attr("disabled", false);
+        }
+    }
+
+    function LoadLogs(){
+        $("#gridOperationLog").jqGrid('setGridParam', {
+            url: "@Url.Content("~/CommonModule/Base_OperationLog/GetPageOperLogList")?DocID="+KeyValue, page: 1
+        }).trigger('reloadGrid');
+    }
+
+    //按照数据显示操作按钮
+    function CreateOperations(){
+        $("#formButton").find("input").hide();
+
+        //表单按钮
+        //新增
+        if (!KeyValue) {
+            $("#btn_Submit,#btn_Close").show();
+            $(".logArea").hide();
+            SetFormHeight();
+        }
+        else
+        {
+            //$("#btn_Save,#btn_Close").show();
+        }
+    }
+
+    //熔炼单
+    function SmeltAction(){
+        Statusbtn="1";
+        BindCompany();
+    }
+    //流程单
+    function ProcessAction(){
+        Statusbtn="2"
+        BindCompany();
+    }
+
+    //保存事件
+    function SaveAction() {
+        if (!CheckDataValid('#form1')) {
+            return false;
+        }
+
+        var postData = GetWebControls("#form1");
+
+        if (postData["Remark"]=="%01") {
+            postData["Remark"]="";
+        }
+        var Processes = "";
+        var count = 1;
+        var num = 0;
+        $("#Processes").find('input').each(function (r) {
+            var NAME = $(this).val().split('$')[1].toString();
+            var type = $(this).attr('type');
+            switch (type) {
+                case "checkbox":
+                    if ($(this).attr("checked")) {
+                        if (count == 1) {
+                            Processes = NAME;
+                            if(NAME=="挤丝"){
+                                num=1;
+                            }
+                            count++;
+                        } else {
+                            Processes = Processes + ',' + NAME;
+                            if(NAME=="挤丝"){
+                                num=1;
+                            }
+                            count++;
+                        }
+                    }
+                    break;
+            }
+        });
+        postData["Processes"] = Processes;
+
+        Loading(true, "正在提交数据...");
+        if(num==1){
+            AjaxJson("@Url.Action("FormAction")?KeyValue=" + KeyValue
+                 +"&OperationType="+ "@Convert.ToInt32(Circle.Business.OperationType.Other)", postData, function (data) {
+                     if (data.Code=="0"||data.Code=="-1") {
+                         tipDialog(data.Message, 3, data.Code);
+                         return;
+                     }else{
+                         confirmDialog("系统提示", data.Message, function (r) {
+                             if (r) {
+                                 Loading(true, '正在提交数据...');
+                                 AjaxJson("@Url.Action("FormAction")?KeyValue=" + KeyValue
+                                       +"&OperationType="+ "@Convert.ToInt32(Circle.Business.OperationType.Save)", postData, function (data) {
+                                           if (data.Code=="0"||data.Code=="-1") {
+                                               tipDialog(data.Message, 3, data.Code);
+                                           }else{
+                                               KeyValue=data.OtherMessage;
+                                               var url = "@Url.Action("Form")?KeyValue="+KeyValue;
+                                               location.href=url;
+                                               tipDialog(data.Message, 3, data.Code);
+                                               top.frames[tabiframeId()].windowload();
+                                           }
+                                       });
+                             }
+                         })
+                     }
+                 });
+
+        }else{
+            window.setTimeout(function () {
+                AjaxJson("@Url.Action("FormAction")?KeyValue=" + KeyValue
+                      +"&OperationType="+ "@Convert.ToInt32(Circle.Business.OperationType.Save)", postData, function (data) {
+                          if (data.Code=="0"||data.Code=="-1") {
+                              tipDialog(data.Message, 3, data.Code);
+                          }else{
+                              KeyValue=data.OtherMessage;
+                              var url = "@Url.Action("Form")?KeyValue="+KeyValue;
+                              location.href=url;
+                              tipDialog(data.Message, 3, data.Code);
+                              top.frames[tabiframeId()].windowload();
+                          }
+                      });
+
+            }, 200);
+        }
+
+    }
+
+    //刷新表格
+    function windowload() {
+
+        $("#gridOperationLog").trigger("reloadGrid"); //重新载入
+    }
+    //关闭事件
+    function CloseAction(){
+        closeDialog();
+    }
+
+    //加载日志表格
+    function GetGridLog(ParameterJson) {
+        $("#gridOperationLog").jqGrid({
+            datatype: "json",
+            height:124,
+            // autowidth: true,
+            colModel: [
+                { label: "主键", name: "ID", index: "ID",sortable: false, hidden: true },
+                {
+                    label: "操作时间", name: "OperationDt", index: "OperationDt", width: 120,sortable: false,
+                    formatter: function (value, options, rowObject) {
+                        return formatDate(value, 'yyyy-MM-dd hh:mm:ss');
+                    }
+                },
+                { label: "操作名称", name: "OperationName",index: "OperationName",sortable: false, width: 80, align: "center" },
+                {label: "操作状态", name: "OperationStatus", index: "OperationStatus", sortable: false,width: 80, align: "center"},
+                { label: "操作人员", name: "Operater", index: "Operater",sortable: false, width: 80 },
+                { label: "操作描述", name: "OperationMemo", index: "OperationMemo",sortable: false, width: 120 },
+                { label: "", name: "", index: "",sortable: false, width: 200 },
+            ],
+            viewrecords: true,
+            rowNum: 999999,
+            sortname: 'OperationDt',
+            sortorder: 'DESC',
+            rownumbers: true,
+            shrinkToFit: false,
+            gridview: true
+        });
+    }
+
+
+
+
+
+
+
+    function btn_add() {
+        var keyvalue = GetQuery('KeyValue');
+        var url = "/CXModule/EPM_App_ProductOrder/BOMEditForm?ProductOrderID=" + GetQuery('KeyValue');
+        openDialog(url, "BOMEditForm", "备料信息新增", 420, 305, function (iframe) {
+            top.frames[iframe].AcceptClick()
+        });
+    }
+
+    function btn_del() {
+        var id = $('#gridTable').jqGrid('getGridParam', 'selrow');
+        var detailid = GetJqGridRowValue("#gridTable", "ID");
+        if (IsDelData(id)) {
+            var delparm = 'KeyValue=' + detailid;
+            Loading(true, "Loading...");
+            window.setTimeout(function () {
+                AjaxJson('/CXModule/EPM_App_ProductOrder/DeleteProductMaterial', delparm, function (data) {
+                    tipDialog(data.Message, 3, data.Code);
+                    if (data.Code > 0) {
+                        $("#gridTable").jqGrid('delRowData', id);
+                    }
+                });
+            }, 200);
+
+        }
+    }
+
+    function AddGridRow(dataRow, row) {
+        var $grid = $("#gridTable");
+        var maxRowId = Math.max.apply(Math, $grid.jqGrid('getDataIDs'))
+        if (maxRowId >= 1) {
+
+            $("#gridTable").jqGrid("addRowData", maxRowId + 1, dataRow, "after", maxRowId);
+            $("#gridTable").jqGrid("setCell", maxRowId + 1, "ID", maxRowId + 1);
+            $("#gridTable").jqGrid("setCell", maxRowId + 1, "SortNum", "@ViewBag.SortNum");
+            $("#gridTable").jqGrid("setCell", maxRowId + 1, "MaterialName", "@ViewBag.MaterialName");
+            $("#gridTable").jqGrid("setCell", maxRowId + 1, "ConcertQty", "@ViewBag.ConcertQty");
+
+        }
+        else {
+
+            $("#gridTable").jqGrid("addRowData", 1, dataRow, "first");
+            $("#gridTable").jqGrid("setCell", 1, "ID", 1);
+            $("#gridTable").jqGrid("setCell", 1, "SortNum", "@ViewBag.SortNum");
+            $("#gridTable").jqGrid("setCell", 1, "MaterialName", "@ViewBag.MaterialName");
+            $("#gridTable").jqGrid("setCell", 1, "ConcertQty", "@ViewBag.ConcertQty");
+        }
+    }
+
+    //绑定工序
+    function BindCompany() {
+        AjaxJson("/CXModule/EPM_App_ProductOrder/BindProcesses?Code="+Statustap+"&MaterialNo="+MaterialNo, {}, function (data) {
+            var html = "";
+            html += "<span class='item'>";
+
+            $.each(data, function (i) {
+                if (Statusbtn=="1") {
+
+                    if (data[i].Code=='RL') {
+                        html += "<input type='checkbox' name='Processes' id='Processes" + i + "'value='line$" + data[i].fullName + "' checked='checked' "
+                        html += "/>";
+                        html += "<label for='Processes" + i + "' style='text-align:left'>" + data[i].fullName + "</label>&nbsp;&nbsp;"
+
+                    }else if (data[i].Code=='YC') {
+                        html += "<input type='checkbox' name='Processes' id='Processes" + i + "'value='line$" + data[i].fullName + "' checked='checked' "
+                        html += "/>";
+                        html += "<label for='Processes" + i + "' style='text-align:left'>" + data[i].fullName + "</label>&nbsp;&nbsp;"
+
+                    } else {
+                        html += "<input type='checkbox' name='Processes' id='Processes" + i + "'value='line$" + data[i].fullName + "' "
+                        html += "/>";
+                        html += "<label for='Processes" + i + "' style='text-align:left'>" + data[i].fullName + "</label>&nbsp;&nbsp;"
+                    }
+                } else if(Statusbtn=="2"){
+                    if (data[i].Code=='RS') {
+                        html += "<input type='checkbox' name='Processes' id='Processes" + i + "'value='line$" + data[i].fullName + "' checked='checked' "
+                        html += "/>";
+                        html += "<label for='Processes" + i + "' style='text-align:left'>" + data[i].fullName + "</label>&nbsp;&nbsp;"
+
+                    }else if (data[i].Code=='BZ') {
+                        html += "<input type='checkbox' name='Processes' id='Processes" + i + "'value='line$" + data[i].fullName + "' checked='checked' "
+                        html += "/>";
+                        html += "<label for='Processes" + i + "' style='text-align:left'>" + data[i].fullName + "</label>&nbsp;&nbsp;"
+
+                    }else if (data[i].Code=='JS') {
+                        html += "<input type='checkbox' name='Processes' id='Processes" + i + "'value='line$" + data[i].fullName + "' checked='checked' "
+                        html += "/>";
+                        html += "<label for='Processes" + i + "' style='text-align:left'>" + data[i].fullName + "</label>&nbsp;&nbsp;"
+
+                    } else {
+                        html += "<input type='checkbox' name='Processes' id='Processes" + i + "'value='line$" + data[i].fullName + "' "
+                        html += "/>";
+                        html += "<label for='Processes" + i + "' style='text-align:left'>" + data[i].fullName + "</label>&nbsp;&nbsp;"
+                    }
+                }
+                else {
+                    html += "<input type='checkbox' name='Processes' id='Processes" + i + "'value='line$" + data[i].fullName + "' checked='checked' "
+                    html += "/>";
+                    html += "<label for='Processes" + i + "' style='text-align:left'>" + data[i].fullName + "</label>&nbsp;&nbsp;"
+                }
+
+
+            });
+
+            html += "</span>";
+            $("#Processes").html(html);
+        });
+    }
+
+
+    function EditGridRow(data, row) {
+        $("#gridTable").jqGrid('delRowData', row);
+        AddGridRow(data, row);
+    }
+    function GetGridRows() {
+        var rows = $("#gridTable").jqGrid('getRowData');
+        return JSON.stringify(rows);
+    }
+
+</script>
+<link href="~/Content/Scripts/lhgdialog/default.css" rel="stylesheet" />
+<link href="~/Content/Styles/hb_main.css" rel="stylesheet" />
+<form id="form1" style="margin: 1px">
+    <div id="divtopbutton" style="z-index:2000; background-color:white;">
+        <table class="form" style="border-top:none; border-bottom:none; border-left:none; border-right:none; margin-top:0px; top:0px; width:100%; height:100%;">
+            <tr>
+                <td class="ui_buttons" style="background-color: inherit; padding-top: 0px; vertical-align: top; text-align: left">
+                    <div style="float:left;">
+                        <input type="button" id="btn_Submit" onclick="SaveAction();" value="制作生产单" class="ui_state_highlight" style="display:none;" />
+                        <input type="button" id="btn_Save" onclick="SaveAction();" value="保存" class="ui_state_highlight" style="display:none;" />
+                        <input type="button" id="btn_Close" onclick="CloseAction()" value="关闭" class="ui_close_highlight" />
+                    </div>
+                </td>
+            </tr>
+        </table>
+    </div> 
+
+    <fieldset class="baseArea">
+        <div id="message" style="display: none"></div>
+        <legend class="fieldTitle">基本信息</legend>
+        <table class="form">
+            <tr id="statusinfo">
+                <th class="formTitle">
+                    生产单号：
+                </th>
+                <td class="formValue">
+                    <label id="OrderNumber"></label>
+                </td>
+                <th class="formTitle">
+                    状态：
+                </th>
+                <td class="formValue">
+                    <label id="Status"></label>
+                </td>
+            </tr>
+            <tr id="createinfo">
+                <th class="formTitle">
+                    制单人：
+                </th>
+                <td class="formValue">
+                    <label id="CreateUserName"></label>
+                </td>
+                <th class="formTitle">
+                    制单日期：
+                </th>
+                <td class="formValue">
+                    <label id="CreateDate"></label>
+                </td>
+            </tr>
+
+            <tr>
+                <th class="formTitle">
+                    线别：
+                </th>
+                <td class="formValue">
+                    <select id="Line" class="txtselect required" datacol="yes" err="线别" checkexpession="NotNull" onchange="BindLine()"></select>
+                </td>
+                <th class="formTitle">
+                    料号：
+                </th>
+                <td class="formValue">
+                    <input id="Vid" type="hidden" class="txt" />
+                    <input id="MaterialNo" maxlength=25 type="text" class="txt required" datacol="yes" err="料号" checkexpession="NotNull" autocomplete="off" />
+                </td>
+            </tr>
+
+
+            <tr>
+            <th class="formTitle">
+                单位：
+            </th>
+            <td class="formValue">
+                <input id="Unit" type="text" class="txt" readonly />
+            </td>
+            <th class="formTitle">
+                品牌：
+            </th>
+            <td class="formValue">
+                <input id="Brand" type="text" class="txt" readonly />
+            </td>
+            </tr>
+            <tr>
+                <th class="formTitle">
+                    名称：
+                </th>
+                <td class="formValue" >
+                    <input id="MaterialName" type="text" class="txt" readonly />
+                </td>
+                <th class="formTitle">
+                    绕丝(卷转换米)：
+                </th>
+                <td class="formValue">
+                    <input id="ConvertQty" maxlength=8 type="text" class="txt required" datacol="yes" err="数量" checkexpession="NotNull" />
+                </td>
+            </tr>
+            <tr>
+                <th class="formTitle">
+                    规格：
+                </th>
+                <td class="formValue">
+                    <input id="Spec" type="text" class="txt" readonly />
+                </td>
+                <th class="formTitle">
+                    型号：
+                </th>
+                <td class="formValue">
+                    <input id="ModelNo" type="text" class="txt" readonly />
+                </td>
+            </tr>
+            <tr>
+                <th class="formTitle">
+                    炉数：
+                </th>
+                <td class="formValue">
+                    <input id="FurnaceNum" maxlength=8 type="text" class="txt required" datacol="yes" err="炉数" checkexpession="ThanZeroOrNull" value="10" />
+                </td>
+                <th class="formTitle">
+                    数量：
+                </th>
+                <td class="formValue">
+                    <input id="Qty" maxlength=8 type="text" class="txt required" datacol="yes" err="数量" checkexpession="NotNull" />
+                </td>
+            </tr>
+            <tr>
+                <th class="formTitle">
+                    勾选工序：
+                </th>
+                <td class="formValue"  id="Processes"></td>
+                <td class="formValue" colspan="2">
+                    <div id="divtopbutton" style="z-index:2000; background-color:white;">
+                        <table class="form" style="border-top:none; border-bottom:none; border-left:none; border-right:none; margin-top:0px; top:0px; width:100%; height:100%;">
+                            <tr>
+                                <td class="ui_buttons" style="background-color: inherit; padding-top: 0px; vertical-align: top; text-align: left">
+                                    <div style="float:left;">
+                                        <input type="button" id="btn_Smelt" onclick="SmeltAction()" value="熔炼单" class="ui_close_highlight" />
+                                        <input type="button" id="btn_Process" onclick="ProcessAction()" value="流程单" class="ui_close_highlight" />
+                                    </div>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                </td>
+            </tr>
+              
+            <tr>
+                <th class="formTitle">
+                    备注：
+                </th>
+                <td class="formValue" colspan="3">
+                    <textarea id="Remark" style="width:100%" rows="2" onkeyup="if(this.value.length > 100) this.value=this.value.substr(0,100)"></textarea>
+                </td>
+            </tr>
+        </table>
+    </fieldset>
+
+   
+
+    <fieldset class="logArea">
+        <legend class="fieldTitle">操作日志</legend>
+        <table id="gridOperationLog"></table>
+    </fieldset>
+</form>
