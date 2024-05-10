@@ -1,2 +1,2 @@
-# musicfreejb.github.io
-一些小玩意
+# 小网站
+存放一些小玩意
