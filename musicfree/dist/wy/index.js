@@ -1,33 +1,24 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
+Object.defineProperty(exports, "__esModule", { value: true });
 const axios_1 = require("axios");
 const CryptoJs = require("crypto-js");
 const qs = require("qs");
 const bigInt = require("big-integer");
 const dayjs = require("dayjs");
 const cheerio = require("cheerio");
-
 function a() {
-    var d, e, b = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
-        c = "";
+    var d, e, b = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", c = "";
     for (d = 0; 16 > d; d += 1)
         (e = Math.random() * b.length), (e = Math.floor(e)), (c += b.charAt(e));
     return c;
 }
-
 function b(a, b) {
-    var c = CryptoJs.enc.Utf8.parse(b),
-        d = CryptoJs.enc.Utf8.parse("0102030405060708"),
-        e = CryptoJs.enc.Utf8.parse(a),
-        f = CryptoJs.AES.encrypt(e, c, {
-            iv: d,
-            mode: CryptoJs.mode.CBC,
-        });
+    var c = CryptoJs.enc.Utf8.parse(b), d = CryptoJs.enc.Utf8.parse("0102030405060708"), e = CryptoJs.enc.Utf8.parse(a), f = CryptoJs.AES.encrypt(e, c, {
+        iv: d,
+        mode: CryptoJs.mode.CBC,
+    });
     return f.toString();
 }
-
 function c(text) {
     text = text.split("").reverse().join("");
     const d = "010001";
@@ -44,7 +35,6 @@ function c(text) {
         .join("")
         .concat(res);
 }
-
 function getParamsAndEnc(text) {
     const first = b(text, "0CoJUm6Qyw8W8jud");
     const rand = a();
@@ -55,18 +45,16 @@ function getParamsAndEnc(text) {
         encSecKey,
     };
 }
-
 function formatMusicItem(_) {
-    var _a, _b, _c, _d, _v;
+    var _a, _b, _c, _d;
     const album = _.al || _.album;
-    const isVip = ((_.fee === 0 || _.fee === 8) && (!_.privilege || ((_v = _.privilege) === null || _v === void 0 ? void 0 : _v.st) >= 0)) ? "0" : "1";
     return {
-        isVip,
         id: _.id,
         artwork: album === null || album === void 0 ? void 0 : album.picUrl,
         title: _.name,
         artist: (_.ar || _.artists)[0].name,
         album: album === null || album === void 0 ? void 0 : album.name,
+        url: `https://music.163.com/song/media/outer/url?id=${_.id}.mp3`,
         qualities: {
             low: {
                 size: (_a = (_.l || {})) === null || _a === void 0 ? void 0 : _a.size,
@@ -84,7 +72,6 @@ function formatMusicItem(_) {
         copyrightId: _ === null || _ === void 0 ? void 0 : _.copyrightId
     };
 }
-
 function formatAlbumItem(_) {
     return {
         id: _.id,
@@ -95,7 +82,10 @@ function formatAlbumItem(_) {
         date: dayjs.unix(_.publishTime / 1000).format("YYYY-MM-DD"),
     };
 }
-
+function musicCanPlayFilter(_) {
+    var _a;
+    return (_.fee === 0 || _.fee === 8) && (!_.privilege || ((_a = _.privilege) === null || _a === void 0 ? void 0 : _a.st) >= 0);
+}
 const pageSize = 30;
 async function searchBase(query, page, type) {
     const data = {
@@ -130,6 +120,7 @@ async function searchBase(query, page, type) {
 async function searchMusic(query, page) {
     const res = await searchBase(query, page, 1);
     const songs = res.result.songs
+        .filter(musicCanPlayFilter)
         .map(formatMusicItem);
     return {
         isEnd: res.result.songCount <= page * pageSize,
@@ -182,11 +173,11 @@ async function searchLyric(query, page) {
         var _a, _b, _c, _d;
         return ({
             title: it.name,
-            artist: (_a = it.ar) === null || _a === void 0 ? void 0 : _a.map((_) => _.name).join(", "),
+            artist: (_b = (_a = it.artists) === null || _a === void 0 ? void 0 : _a.map((_) => _.name)) === null || _b === void 0 ? void 0 : _b.join(", "),
             id: it.id,
-            artwork: (_b = it.al) === null || _b === void 0 ? void 0 : _b.picUrl,
-            album: (_c = it.al) === null || _c === void 0 ? void 0 : _c.name,
-            rawLrcTxt: (_d = it.lyrics) === null || _d === void 0 ? void 0 : _d.join("\n"),
+            artwork: (_c = (it.al || it.album)) === null || _c === void 0 ? void 0 : _c.picUrl,
+            album: (_d = (it.al || it.album)) === null || _d === void 0 ? void 0 : _d.name,
+            rawLrcTxt: it.lyrics.txt,
         });
     })) !== null && _b !== void 0 ? _b : [];
     return {
@@ -221,9 +212,10 @@ async function getArtistWorks(artistItem, page, type) {
         })).data;
         return {
             isEnd: true,
-            data: res.hotSongs.map(formatMusicItem),
+            data: res.hotSongs.filter(musicCanPlayFilter).map(formatMusicItem),
         };
-    } else if (type === "album") {
+    }
+    else if (type === "album") {
         const res = (await (0, axios_1.default)({
             method: "post",
             url: `https://music.163.com/weapi/artist/albums/${artistItem.id}?csrf_token=`,
@@ -238,11 +230,10 @@ async function getArtistWorks(artistItem, page, type) {
 }
 async function getTopListDetail(topListItem) {
     const musicList = await getSheetMusicById(topListItem.id);
-    return Object.assign(Object.assign({}, topListItem), {
-        musicList
-    });
+    return Object.assign(Object.assign({}, topListItem), { musicList });
 }
 async function getLyric(musicItem) {
+    var _a;
     const headers = {
         Referer: "https://y.music.163.com/",
         Origin: "https://y.music.163.com/",
@@ -250,12 +241,7 @@ async function getLyric(musicItem) {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.135 Safari/537.36",
         "Content-Type": "application/x-www-form-urlencoded",
     };
-    const data = {
-        id: musicItem.id,
-        lv: -1,
-        tv: -1,
-        csrf_token: ""
-    };
+    const data = { id: musicItem.id, lv: -1, tv: -1, csrf_token: "" };
     const pae = getParamsAndEnc(JSON.stringify(data));
     const paeData = qs.stringify(pae);
     const result = (await (0, axios_1.default)({
@@ -266,6 +252,7 @@ async function getLyric(musicItem) {
     })).data;
     return {
         rawLrc: result.lrc.lyric,
+        translation: (_a = result.tlyric) === null || _a === void 0 ? void 0 : _a.lyric
     };
 }
 async function getAlbumInfo(albumItem) {
@@ -291,10 +278,9 @@ async function getAlbumInfo(albumItem) {
         data: paeData,
     })).data;
     return {
-        albumItem: {
-            description: res.album.description
-        },
+        albumItem: { description: res.album.description },
         musicList: (res.songs || [])
+            .filter(musicCanPlayFilter)
             .map(formatMusicItem),
     };
 }
@@ -322,13 +308,13 @@ async function getValidMusicItems(trackIds) {
             data: urlencoded,
         })).data;
         const validTrackIds = res.data.filter((_) => _.url).map((_) => _.id);
-        const songDetails = (await axios_1.default.get(`https://music.163.com/api/song/detail/?id=${validTrackIds[0]}&ids=[${validTrackIds.join(",")}]`, {
-            headers
-        })).data;
+        const songDetails = (await axios_1.default.get(`https://music.163.com/api/song/detail/?id=${validTrackIds[0]}&ids=[${validTrackIds.join(",")}]`, { headers })).data;
         const validMusicItems = songDetails.songs
+            .filter((_) => _.fee === 0 || _.fee === 8)
             .map(formatMusicItem);
         return validMusicItems;
-    } catch (e) {
+    }
+    catch (e) {
         return [];
     }
 }
@@ -376,22 +362,23 @@ async function getTopLists() {
             currentGroup = {};
             currentGroup.title = $(c).text();
             currentGroup.data = [];
-        } else if (c.tagName === "ul") {
+        }
+        else if (c.tagName === "ul") {
             let sections = $(c).children();
             currentGroup.data = sections
                 .map((index, element) => {
-                    const ele = $(element);
-                    const id = ele.attr("data-res-id");
-                    const coverImg = ele.find("img").attr("src");
-                    const title = ele.find("p.name").text();
-                    const description = ele.find("p.s-fc4").text();
-                    return {
-                        id,
-                        coverImg,
-                        title,
-                        description,
-                    };
-                })
+                const ele = $(element);
+                const id = ele.attr("data-res-id");
+                const coverImg = ele.find("img").attr("src");
+                const title = ele.find("p.name").text();
+                const description = ele.find("p.s-fc4").text();
+                return {
+                    id,
+                    coverImg,
+                    title,
+                    description,
+                };
+            })
                 .toArray();
         }
     }
@@ -400,35 +387,20 @@ async function getTopLists() {
     }
     return groups;
 }
-
 const qualityLevels = {
-    low: "128k",
-    standard: "320k",
-    high: "flac",
-    super: "flac24bit",
+    low: "",
+    standard: "standard",
+    high: "exhigh",
+    super: "lossless",
 };
-
-// by ikun0014&ThomasYou
 async function getMediaSource(musicItem, quality) {
-    try {
-        const ikun = (await (0, axios_1.default)({
-            method: "GET",
-            url: `https://lxmusic.ikunshare.com:9763/url/wy/${musicItem.id}/${qualityLevels[quality]}`,
-            headers: {
-                "X-Request-Key": "lxmusic"
-            },
-            xsrfCookieName: "XSRF-TOKEN",
-            withCredentials: true,
-        })).data;
-        
-        return {
-            url: ikun.data,
-          };
-    } catch (err) {
-        return null;
+    if (quality !== "standard") {
+        return;
     }
+    return {
+        url: `https://music.163.com/song/media/outer/url?id=${musicItem.id}.mp3`,
+    };
 }
-
 const headers = {
     authority: "music.163.com",
     "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.135 Safari/537.36",
@@ -536,24 +508,21 @@ async function getMusicSheetInfo(sheet, page) {
             _trackIds: trackIds,
         };
     }
-    return Object.assign({
-        isEnd: trackIds.length <= page * pageSize,
-        musicList: res
-    }, extra);
+    return Object.assign({ isEnd: trackIds.length <= page * pageSize, musicList: res }, extra);
 }
 module.exports = {
-    platform: "NeteaseCloudMusic",
-    author: 'ikun0014&ThomasYou',
-    version: "0.0.2",
+    platform: "网易云音乐",
+    author: 'Ray',
+    version: "0.2.3",
     appVersion: ">0.1.0-alpha.0",
-    srcUrl: "https://gitee.com/ikun0014/musicfree/raw/master/dist/wy/index.js",
+    srcUrl: "https://gitee.com/raycn120/musicfree/raw/master/netease.js",
     cacheControl: "no-store",
     hints: {
         importMusicSheet: [
             "网易云移动端：APP点击分享，然后复制链接",
             "网易云H5/PC端：复制URL，或者直接输入歌单ID即可",
             "默认歌单无法导入，先新建一个空白歌单复制过去再导入新歌单即可",
-            "导入时间和歌单大小有关，请耐心等待",
+            "导入过程中会过滤掉所有VIP/试听/收费音乐，导入时间和歌单大小有关，请耐心等待",
         ],
     },
     supportedSearchType: ["music", "album", "sheet", "artist", "lyric"],
