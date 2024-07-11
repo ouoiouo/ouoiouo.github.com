@@ -1,29 +1,34 @@
 {
-    "plugins": [
-        {
-            "name": "WYY",
-            "url": "https://gitee.com/ikun0014/musicfree/raw/master/dist/wy/index.js",
-            "version": "0.0.2"
-        },
-        {
-            "name": "QQ",
-            "url": "https://gitee.com/ikun0014/musicfree/raw/master/dist/qq/index.js",
-            "version": "0.0.2"
-        },
-        {
-            "name": "KG",
-            "url": "https://gitee.com/ikun0014/musicfree/raw/master/dist/kg/index.js",
-            "version": "0.0.2"
-        },
-        {
-            "name": "KW",
-            "url": "https://gitee.com/ikun0014/musicfree/raw/master/dist/kw/index.js",
-            "version": "0.0.2"
-        },
-        {
-            "name": "MG",
-            "url": "https://gitee.com/ikun0014/musicfree/raw/master/dist/mg/index.js",
-            "version": "0.0.2"
-        }
-    ]
+  "plugins": [
+    {
+      "name": "网易云",
+      "url": "https://ouoiouo.github.io/musicfree/dist/wy/index.js",
+      "version": "0.0.2"
+    },
+    {
+      "name": "QQ",
+      "url": "https://ouoiouo.github.io/musicfree/dist/qq/index.js",
+      "version": "0.0.2"
+    },
+    {
+      "name": "酷狗",
+      "url": "https://ouoiouo.github.io/musicfree/dist/kg/index.js",
+      "version": "0.0.2"
+    },
+    {
+      "name": "酷我",
+      "url": "https://ouoiouo.github.io/musicfree/dist/kw/index.js",
+      "version": "0.0.2"
+    },
+    {
+      "name": "咪咕",
+      "url": "https://ouoiouo.github.io/musicfree/dist/mg/index.js",
+      "version": "0.0.2"
+    },
+    {
+      "name": "哔哩哔哩",
+      "url": "https://ouoiouo.github.io/musicfree/dist/blbl/index.js",
+      "version": "0.0.2"
+    }
+  ]
 }
