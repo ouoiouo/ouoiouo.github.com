@@ -29,6 +29,31 @@
       "name": "哔哩哔哩",
       "url": "https://ouoiouo.github.io/musicfree/dist/blbl/index.js",
       "version": "0.0.2"
+    },
+    {
+      "name": "歌词千寻",
+      "url": "https://ouoiouo.github.io/musicfree/dist/gcqx/index.js",
+      "version": "0.0.2"
+    },
+    {
+      "name": "歌词网",
+      "url": "https://ouoiouo.github.io/musicfree/dist/gcw/index.js",
+      "version": "0.0.2"
+    },
+    {
+      "name": "猫耳FM",
+      "url": "https://ouoiouo.github.io/musicfree/dist/mrfm/index.js",
+      "version": "0.0.2"
+    },
+    {
+      "name": "喜马拉雅",
+      "url": "https://ouoiouo.github.io/musicfree/dist/xmly/index.js",
+      "version": "0.0.2"
+    },
+    {
+      "name": "音悦台",
+      "url": "https://ouoiouo.github.io/musicfree/dist/yyt/index.js",
+      "version": "0.0.2"
     }
   ]
 }
