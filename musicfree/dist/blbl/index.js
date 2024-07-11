@@ -436,7 +436,7 @@ async function importMusicSheet(urlLike) {
     }));
 }
 module.exports = {
-    platform: "bilibili",
+    platform: "ßÙÁ¨ßÙÁ¨",
     appVersion: ">=0.0",
     version: "0.1.6",
     defaultSearchType: "album",

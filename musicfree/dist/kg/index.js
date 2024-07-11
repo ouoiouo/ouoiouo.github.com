@@ -415,7 +415,7 @@ async function getLyric(musicItem) {
 
 
 module.exports = {
-    platform: "KugouMusic",
+    platform: "酷狗音乐",
     version: "0.0.2",
     author: 'ikun0014&ThomasYou',
     appVersion: ">0.1.0-alpha.0",
